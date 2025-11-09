@@ -1,7 +1,6 @@
-// Configuration
 const API_URL = 'http://localhost:5000/api';
 
-// Data storage
+// Global variables to store fetched data
 let allDevices = [];
 let allReadings = [];
 let allAlerts = [];
@@ -11,7 +10,7 @@ let pollutionChart = null;
 let maintenanceChart = null;
 let statusChart = null;
 
-// Update current time
+// Display current time in the header (updates every second)
 function updateTime() {
     const now = new Date();
     document.getElementById('current-time').textContent = now.toLocaleString();
@@ -19,7 +18,7 @@ function updateTime() {
 setInterval(updateTime, 1000);
 updateTime();
 
-// Section Navigation
+// Handle navigation between different dashboard sections
 function showSection(sectionId) {
     document.querySelectorAll('.content-section').forEach(section => {
         section.classList.remove('active');
@@ -46,7 +45,6 @@ function showDevices() {
 }
 
 function showZones() {
-    // Show section
     document.querySelectorAll('.content-section').forEach(s => {
         s.classList.remove('active');
     });
@@ -55,7 +53,6 @@ function showZones() {
         zonesSection.classList.add('active');
     }
     
-    // Update nav link
     document.querySelectorAll('.nav-link').forEach(l => {
         l.classList.remove('active');
     });
@@ -64,7 +61,6 @@ function showZones() {
         zoneLink.classList.add('active');
     }
     
-    // Load zones data
     loadZones();
 }
 
@@ -88,7 +84,7 @@ function showAnalytics() {
     loadAnalytics();
 }
 
-// Refresh all data
+// Reload all data from the server
 function refreshData() {
     loadDashboard();
     loadDevices();
@@ -100,6 +96,7 @@ function refreshData() {
 }
 
 // ============ DASHBOARD ============
+// Load and display key performance indicators (KPIs) and charts
 async function loadDashboard() {
     try {
         const response = await fetch(`${API_URL}/analytics/dashboard-summary`);
@@ -109,7 +106,7 @@ async function loadDashboard() {
         document.getElementById('active-alerts').textContent = data.activeAlerts || 0;
         document.getElementById('total-maintenance').textContent = data.totalMaintenance || 0;
         
-        // Convert avgMaintenanceCost to number if it's a string (MySQL returns DECIMAL as string)
+        // MySQL returns DECIMAL fields as strings, so we need to convert to number
         const avgCost = typeof data.avgMaintenanceCost === 'string' 
             ? parseFloat(data.avgMaintenanceCost) 
             : data.avgMaintenanceCost;
@@ -234,7 +231,7 @@ function displayZones() {
     allZones.forEach((zone) => {
         const row = document.createElement('tr');
         
-        // Convert avg_income to number if it's a string
+        // MySQL returns DECIMAL fields as strings, so we convert to number for formatting
         const avgIncome = typeof zone.avg_income === 'string' 
             ? parseFloat(zone.avg_income) 
             : zone.avg_income;
@@ -259,7 +256,7 @@ function showAddZoneForm() {
 function hideAddZoneForm() {
     document.getElementById('add-zone-form').style.display = 'none';
     
-    // Reset form fields instead of calling .reset()
+    // Clear all form fields
     document.getElementById('zone-id').value = '';
     document.getElementById('zone-name').value = '';
     document.getElementById('zone-population').value = '';
@@ -274,7 +271,7 @@ async function addZone(event) {
     const population = document.getElementById('zone-population').value;
     const avgIncome = document.getElementById('zone-income').value;
 
-    // Validate inputs
+    // Check that all required fields are filled
     if (!zoneId || !zoneName || !population || !avgIncome) {
         alert('Please fill all fields');
         return;
@@ -330,6 +327,7 @@ async function deleteZone(zoneId) {
 
 // ============ DEVICES ============
 async function loadDevices() {
+    // Fetch all registered devices from the API
     try {
         const response = await fetch(`${API_URL}/devices`);
         allDevices = await response.json();
@@ -340,11 +338,13 @@ async function loadDevices() {
 }
 
 function displayDevices() {
+    // Render all devices in the table with formatted status badges
     const tbody = document.getElementById('devices-tbody');
     tbody.innerHTML = '';
 
     allDevices.forEach(device => {
         const row = document.createElement('tr');
+        // Color-code device status: green for active, red for inactive, yellow for maintenance
         const statusClass = device.status === 'Active' ? 'badge-active' : device.status === 'Inactive' ? 'badge-inactive' : 'badge-maintenance';
         row.innerHTML = `
             <td>${device.device_id}</td>
@@ -361,21 +361,25 @@ function displayDevices() {
 }
 
 function filterDevices() {
+    // Search devices in real-time as user types in the search box
     const searchTerm = document.getElementById('device-search').value.toLowerCase();
     const tbody = document.getElementById('devices-tbody');
     const rows = tbody.querySelectorAll('tr');
 
     rows.forEach(row => {
         const text = row.textContent.toLowerCase();
+        // Show or hide rows based on whether they match the search term
         row.style.display = text.includes(searchTerm) ? '' : 'none';
     });
 }
 
 function showAddDeviceForm() {
+    // Display the add device form modal
     document.getElementById('add-device-form').style.display = 'block';
 }
 
 function hideAddDeviceForm() {
+    // Hide the add device form modal and clear all input fields
     document.getElementById('add-device-form').style.display = 'none';
     document.getElementById('device-id').value = '';
     document.getElementById('device-type').value = '';
