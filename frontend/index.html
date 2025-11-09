@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart City Infrastructure & IoT Analytics Dashboard</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- Sidebar Navigation -->
+        <nav class="sidebar">
+            <div class="logo">
+                <h2>Smart City</h2>
+            </div>
+            <ul class="nav-menu">
+                <li><a href="#dashboard" class="nav-link active" onclick="showDashboard()">Dashboard</a></li>
+                <li><a href="#devices" class="nav-link" onclick="showDevices()">Devices</a></li>
+                <li><a href="#zones" class="nav-link" onclick="showZones()">Zones</a></li>
+                <li><a href="#readings" class="nav-link" onclick="showReadings()">Readings</a></li>
+                <li><a href="#alerts" class="nav-link" onclick="showAlerts()">Alerts</a></li>
+                <li><a href="#maintenance" class="nav-link" onclick="showMaintenance()">Maintenance</a></li>
+                <li><a href="#analytics" class="nav-link" onclick="showAnalytics()">Analytics</a></li>
+            </ul>
+        </nav>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Header -->
+            <header class="header">
+                <h1>Smart City Infrastructure & IoT Analytics System</h1>
+                <div class="header-info">
+                    <span id="current-time"></span>
+                    <button class="btn-refresh" onclick="refreshData()">Refresh</button>
+                </div>
+            </header>
+
+            <!-- Dashboard Section -->
+            <section id="dashboard" class="content-section active">
+                <h2>Dashboard Overview</h2>
+                <div class="dashboard-grid">
+                    <div class="card stat-card">
+                        <h3>Total Devices</h3>
+                        <p class="stat-number" id="total-devices">0</p>
+                        <p class="stat-label">Active & Inactive</p>
+                    </div>
+                    <div class="card stat-card">
+                        <h3>Active Alerts</h3>
+                        <p class="stat-number alert" id="active-alerts">0</p>
+                        <p class="stat-label">Unresolved Issues</p>
+                    </div>
+                    <div class="card stat-card">
+                        <h3>Maintenance Logs</h3>
+                        <p class="stat-number" id="total-maintenance">0</p>
+                        <p class="stat-label">Total Operations</p>
+                    </div>
+                    <div class="card stat-card">
+                        <h3>Avg Maintenance Cost</h3>
+                        <p class="stat-number" id="avg-cost">$0</p>
+                        <p class="stat-label">Per Operation</p>
+                    </div>
+                </div>
+
+                <div class="charts-grid">
+                    <div class="card">
+                        <h3>Top Polluted Zones</h3>
+                        <canvas id="pollutionChart"></canvas>
+                    </div>
+                    <div class="card">
+                        <h3>Maintenance by Zone</h3>
+                        <canvas id="maintenanceChart"></canvas>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Devices Section -->
+            <section id="devices" class="content-section">
+                <h2>IoT Devices Management</h2>
+                <div class="action-bar">
+                    <button class="btn btn-primary" onclick="showAddDeviceForm()">Add Device</button>
+                    <input type="text" id="device-search" placeholder="Search devices..." onkeyup="filterDevices()">
+                </div>
+                <div id="add-device-form" class="form-container" style="display: none;">
+                    <h3>Add New Device</h3>
+                    <form onsubmit="addDevice(event)">
+                        <input type="number" id="device-id" placeholder="Device ID" required>
+                        <input type="text" id="device-type" placeholder="Device Type (e.g., Pollution Sensor)" required>
+                        <input type="number" id="device-zone" placeholder="Zone ID" required>
+                        <input type="date" id="device-date" required>
+                        <select id="device-status" required>
+                            <option value="">Select Status</option>
+                            <option value="Active">Active</option>
+                            <option value="Inactive">Inactive</option>
+                            <option value="Maintenance">Maintenance</option>
+                        </select>
+                        <button type="submit" class="btn btn-primary">Add Device</button>
+                        <button type="button" class="btn btn-secondary" onclick="hideAddDeviceForm()">Cancel</button>
+                    </form>
+                </div>
+                <table id="devices-table" class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Device ID</th>
+                            <th>Type</th>
+                            <th>Zone</th>
+                            <th>Install Date</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="devices-tbody">
+                        <!-- Data will be populated by JS -->
+                    </tbody>
+                </table>
+            </section>
+
+            <!-- Zones Section -->
+            <section id="zones" class="content-section">
+                <h2>City Zones</h2>
+                <div class="action-bar">
+                    <button class="btn btn-primary" onclick="showAddZoneForm()">Add Zone</button>
+                </div>
+                <div id="add-zone-form" class="form-container" style="display: none;">
+                    <h3>Add New Zone</h3>
+                    <form onsubmit="addZone(event)">
+                        <input type="number" id="zone-id" placeholder="Zone ID" required>
+                        <input type="text" id="zone-name" placeholder="Zone Name" required>
+                        <input type="number" id="zone-population" placeholder="Population" required>
+                        <input type="number" id="zone-income" placeholder="Avg Income" step="0.01" required>
+                        <button type="submit" class="btn btn-primary">Add Zone</button>
+                        <button type="button" class="btn btn-secondary" onclick="hideAddZoneForm()">Cancel</button>
+                    </form>
+                </div>
+                <table id="zones-table" class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Zone ID</th>
+                            <th>Name</th>
+                            <th>Population</th>
+                            <th>Avg Income</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="zones-tbody">
+                        <!-- Data will be populated by JS -->
+                    </tbody>
+                </table>
+            </section>
+
+            <!-- Readings Section -->
+            <section id="readings" class="content-section">
+                <h2>Sensor Readings</h2>
+                <div class="action-bar">
+                    <button class="btn btn-primary" onclick="showAddReadingForm()">Add Reading</button>
+                    <select id="reading-filter" onchange="filterReadings()">
+                        <option value="">All Reading Types</option>
+                        <option value="AirQuality">Air Quality</option>
+                        <option value="TrafficDensity">Traffic Density</option>
+                        <option value="EnergyUsage">Energy Usage</option>
+                        <option value="WaterLevel">Water Level</option>
+                    </select>
+                </div>
+                <div id="add-reading-form" class="form-container" style="display: none;">
+                    <h3>Add New Reading</h3>
+                    <form onsubmit="addReading(event)">
+                        <input type="number" id="reading-id" placeholder="Reading ID" required>
+                        <input type="number" id="reading-device" placeholder="Device ID" required>
+                        <input type="text" id="reading-type" placeholder="Reading Type" required>
+                        <input type="number" id="reading-value" placeholder="Value" step="0.01" required>
+                        <input type="datetime-local" id="reading-timestamp" required>
+                        <button type="submit" class="btn btn-primary">Add Reading</button>
+                        <button type="button" class="btn btn-secondary" onclick="hideAddReadingForm()">Cancel</button>
+                    </form>
+                </div>
+                <table id="readings-table" class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Reading ID</th>
+                            <th>Device ID</th>
+                            <th>Type</th>
+                            <th>Value</th>
+                            <th>Timestamp</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="readings-tbody">
+                        <!-- Data will be populated by JS -->
+                    </tbody>
+                </table>
+            </section>
+
+            <!-- Alerts Section -->
+            <section id="alerts" class="content-section">
+                <h2>System Alerts</h2>
+                <div class="action-bar">
+                    <button class="btn btn-primary" onclick="showAddAlertForm()">Create Alert</button>
+                    <select id="alert-filter" onchange="filterAlerts()">
+                        <option value="">All Alerts</option>
+                        <option value="0">Active</option>
+                        <option value="1">Resolved</option>
+                    </select>
+                </div>
+                <div id="add-alert-form" class="form-container" style="display: none;">
+                    <h3>Create New Alert</h3>
+                    <form onsubmit="addAlert(event)">
+                        <input type="number" id="alert-id" placeholder="Alert ID" required>
+                        <input type="number" id="alert-device" placeholder="Device ID" required>
+                        <input type="text" id="alert-type" placeholder="Alert Type" required>
+                        <select id="alert-severity" required>
+                            <option value="">Select Severity</option>
+                            <option value="Low">Low</option>
+                            <option value="Medium">Medium</option>
+                            <option value="High">High</option>
+                            <option value="Critical">Critical</option>
+                        </select>
+                        <input type="datetime-local" id="alert-time" required>
+                        <button type="submit" class="btn btn-primary">Create Alert</button>
+                        <button type="button" class="btn btn-secondary" onclick="hideAddAlertForm()">Cancel</button>
+                    </form>
+                </div>
+                <table id="alerts-table" class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Alert ID</th>
+                            <th>Device ID</th>
+                            <th>Type</th>
+                            <th>Severity</th>
+                            <th>Time</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="alerts-tbody">
+                        <!-- Data will be populated by JS -->
+                    </tbody>
+                </table>
+            </section>
+
+            <!-- Maintenance Section -->
+            <section id="maintenance" class="content-section">
+                <h2>Maintenance Logs</h2>
+                <div class="action-bar">
+                    <button class="btn btn-primary" onclick="showAddMaintenanceForm()">Log Maintenance</button>
+                </div>
+                <div id="add-maintenance-form" class="form-container" style="display: none;">
+                    <h3>Add Maintenance Log</h3>
+                    <form onsubmit="addMaintenance(event)">
+                        <input type="number" id="maintenance-id" placeholder="Log ID" required>
+                        <input type="number" id="maintenance-device" placeholder="Device ID" required>
+                        <input type="text" id="maintenance-technician" placeholder="Technician Name" required>
+                        <input type="number" id="maintenance-cost" placeholder="Cost" step="0.01" required>
+                        <input type="date" id="maintenance-date" required>
+                        <input type="text" id="maintenance-issue" placeholder="Issue Fixed" required>
+                        <button type="submit" class="btn btn-primary">Log Maintenance</button>
+                        <button type="button" class="btn btn-secondary" onclick="hideAddMaintenanceForm()">Cancel</button>
+                    </form>
+                </div>
+                <table id="maintenance-table" class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Log ID</th>
+                            <th>Device ID</th>
+                            <th>Technician</th>
+                            <th>Cost</th>
+                            <th>Date</th>
+                            <th>Issue Fixed</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="maintenance-tbody">
+                        <!-- Data will be populated by JS -->
+                    </tbody>
+                </table>
+            </section>
+
+            <!-- Analytics Section -->
+            <section id="analytics" class="content-section">
+                <h2>Advanced Analytics</h2>
+                <div class="analytics-grid">
+                    <div class="card">
+                        <h3>Unserviced Devices (With Alerts)</h3>
+                        <div id="unserviced-devices"></div>
+                    </div>
+                    <div class="card">
+                        <h3>Device Status Overview</h3>
+                        <canvas id="statusChart"></canvas>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="script.js"></script>
+    <script>
+        // Auto-load dashboard on page load
+        loadDashboard();
+    </script>
+</body>
+</html>
