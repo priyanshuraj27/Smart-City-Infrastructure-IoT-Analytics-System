@@ -9,6 +9,12 @@ let allZones = [];
 let pollutionChart = null;
 let maintenanceChart = null;
 let statusChart = null;
+let alertsByZoneChart = null;
+let topDevicesChart = null;
+
+// Hold the last-fetched analytics data so export buttons can use it
+let analyticsTopDevicesData = [];
+let analyticsAlertsByZoneData = [];
 
 // Display current time in the header (updates every second)
 function updateTime() {
@@ -248,6 +254,68 @@ function displayZones() {
         tbody.appendChild(row);
     });
 }
+
+// ----------------- Authentication helpers (frontend-only) -----------------
+function showLoginForm() {
+    const m = document.getElementById('login-modal'); if (m) m.style.display = 'flex';
+}
+
+function hideLoginForm() { const m = document.getElementById('login-modal'); if (m) m.style.display = 'none'; }
+
+function showSignupForm() { const m = document.getElementById('signup-modal'); if (m) m.style.display = 'flex'; }
+function hideSignupForm() { const m = document.getElementById('signup-modal'); if (m) m.style.display = 'none'; }
+
+async function signupUser(event) {
+    event.preventDefault();
+    const name = document.getElementById('signup-name').value.trim();
+    const email = document.getElementById('signup-email').value.trim();
+    const password = document.getElementById('signup-password').value;
+    if (!name || !email || !password) { alert('Please fill all fields'); return; }
+    try {
+        const resp = await fetch(`${API_URL}/auth/signup`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, email, password }) });
+        const data = await resp.json();
+        if (resp.ok) { alert('Account created. You can now log in.'); hideSignupForm(); showLoginForm(); }
+        else alert('Signup error: ' + (data.error || JSON.stringify(data)));
+    } catch (err) { alert('Signup failed: ' + err.message); }
+}
+
+async function loginUser(event) {
+    event.preventDefault();
+    const email = document.getElementById('login-email').value.trim();
+    const password = document.getElementById('login-password').value;
+    if (!email || !password) { alert('Please enter email and password'); return; }
+    try {
+        const resp = await fetch(`${API_URL}/auth/login`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password }) });
+        const data = await resp.json();
+        if (resp.ok && data.token) {
+            localStorage.setItem('authToken', data.token);
+            if (data.user) localStorage.setItem('authUser', JSON.stringify(data.user));
+            hideLoginForm(); updateAuthUI(); alert('Logged in');
+        } else {
+            alert('Login failed: ' + (data.error || JSON.stringify(data)));
+        }
+    } catch (err) { alert('Login failed: ' + err.message); }
+}
+
+function logout() { localStorage.removeItem('authToken'); localStorage.removeItem('authUser'); updateAuthUI(); }
+
+function getAuthHeaders() { const token = localStorage.getItem('authToken'); return token ? { Authorization: 'Bearer ' + token } : {}; }
+
+function updateAuthUI() {
+    const authArea = document.getElementById('auth-area');
+    const token = localStorage.getItem('authToken');
+    const userRaw = localStorage.getItem('authUser');
+    const user = userRaw ? JSON.parse(userRaw) : null;
+    if (!authArea) return;
+    if (token && user) {
+        authArea.innerHTML = `<span style="margin-right:8px">Hi, ${String(user.name || user.email || 'User').replace(/[<>"'`]/g,'')}</span><button class="btn btn-secondary" onclick="logout()">Logout</button>`;
+    } else {
+        authArea.innerHTML = `<button class="btn btn-secondary" id="btn-login" onclick="showLoginForm()">Login</button>`;
+    }
+}
+
+// Initialize auth UI after script load
+try { updateAuthUI(); } catch (e) { /* ignore if DOM not ready */ }
 
 function showAddZoneForm() {
     document.getElementById('add-zone-form').style.display = 'block';
@@ -761,19 +829,137 @@ async function deleteMaintenance(logId) {
 
 // ============ ANALYTICS ============
 async function loadAnalytics() {
+    // Load and display analytics: unserviced devices, device status, and additional lists
     try {
-        // Load unserviced devices
-        const response1 = await fetch(`${API_URL}/analytics/unserviced-devices`);
-        const unserviced = await response1.json();
+        // Devices with unresolved alerts that require service
+        const respUnserviced = await fetch(`${API_URL}/analytics/unserviced-devices`);
+        const unserviced = await respUnserviced.json();
         displayUnservicedDevices(unserviced);
 
-        // Load device status chart
-        const response2 = await fetch(`${API_URL}/devices`);
-        const devices = await response2.json();
+        // Device status distribution (doughnut chart)
+        const respDevices = await fetch(`${API_URL}/devices`);
+        const devices = await respDevices.json();
         loadDeviceStatusChart(devices);
+
+    // Top devices by reading count
+    const respTopDevices = await fetch(`${API_URL}/analytics/top-devices-by-readings`);
+    const topDevices = await respTopDevices.json();
+    analyticsTopDevicesData = topDevices;
+    displayTopDevices(topDevices);
+    renderTopDevicesChart(topDevices);
+
+        // Alerts aggregated by zone
+    const respAlertsZone = await fetch(`${API_URL}/analytics/alerts-by-zone`);
+    const alertsByZone = await respAlertsZone.json();
+    analyticsAlertsByZoneData = alertsByZone;
+    displayAlertsByZone(alertsByZone);
+    renderAlertsByZoneChart(alertsByZone);
+
+        // Average maintenance cost per zone
+        const respAvgCost = await fetch(`${API_URL}/analytics/avg-cost-per-zone`);
+        const avgCostPerZone = await respAvgCost.json();
+        displayAvgCostPerZone(avgCostPerZone);
+
+        // Devices needing replacement
+        const respReplacement = await fetch(`${API_URL}/analytics/devices-needing-replacement`);
+        const replacementDevices = await respReplacement.json();
+        displayDevicesNeedingReplacement(replacementDevices);
+
     } catch (error) {
         console.error('Error loading analytics:', error);
     }
+}
+
+// Convert array of objects to CSV and trigger download
+function exportCSV(dataArray, filename = 'export.csv') {
+    if (!dataArray || dataArray.length === 0) {
+        alert('No data to export');
+        return;
+    }
+
+    const headers = Object.keys(dataArray[0]);
+    const csvRows = [headers.join(',')];
+
+    dataArray.forEach(row => {
+        const values = headers.map(h => {
+            const val = row[h] === null || row[h] === undefined ? '' : String(row[h]);
+            // Escape double quotes
+            return `"${val.replace(/"/g, '""')}"`;
+        });
+        csvRows.push(values.join(','));
+    });
+
+    const csvString = csvRows.join('\n');
+    const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
+// Render bar chart for alerts by zone
+function renderAlertsByZoneChart(rows) {
+    const ctx = document.getElementById('canvas-alerts-by-zone');
+    if (!ctx) return;
+
+    const labels = rows.map(r => r.zone);
+    const values = rows.map(r => r.alert_count);
+
+    if (alertsByZoneChart) alertsByZoneChart.destroy();
+
+    alertsByZoneChart = new Chart(ctx.getContext('2d'), {
+        type: 'bar',
+        data: {
+            labels,
+            datasets: [{
+                label: 'Alerts by Zone',
+                data: values,
+                backgroundColor: 'rgba(255, 99, 132, 0.6)'
+            }]
+        },
+        options: { responsive: true, maintainAspectRatio: true }
+    });
+}
+
+// Render horizontal bar chart for top devices
+function renderTopDevicesChart(devices) {
+    const ctx = document.getElementById('canvas-top-devices');
+    if (!ctx) return;
+
+    const labels = devices.map(d => `#${d.device_id}`);
+    const values = devices.map(d => d.readings_count);
+
+    if (topDevicesChart) topDevicesChart.destroy();
+
+    topDevicesChart = new Chart(ctx.getContext('2d'), {
+        type: 'bar',
+        data: {
+            labels,
+            datasets: [{
+                label: 'Readings count',
+                data: values,
+                backgroundColor: 'rgba(54, 162, 235, 0.7)'
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: true
+        }
+    });
+}
+
+// Helper wrappers wired to Export buttons
+function exportTopDevicesCSV() {
+    exportCSV(analyticsTopDevicesData, 'top-devices.csv');
+}
+
+function exportAlertsByZoneCSV() {
+    exportCSV(analyticsAlertsByZoneData, 'alerts-by-zone.csv');
 }
 
 function displayUnservicedDevices(devices) {
@@ -796,6 +982,81 @@ function displayUnservicedDevices(devices) {
         `;
         container.appendChild(item);
     });
+}
+
+// Render helpers for new analytics endpoints
+function displayTopDevices(devices) {
+    const container = document.getElementById('top-devices');
+    if (!container) return;
+    container.innerHTML = '';
+    if (!devices || devices.length === 0) {
+        container.innerHTML = '<p>No top devices available</p>';
+        return;
+    }
+
+    const list = document.createElement('ol');
+    devices.forEach(d => {
+        const item = document.createElement('li');
+        item.textContent = `Device ${d.device_id} (${d.type}) — readings: ${d.readings_count}, avg: ${Number(d.avg_value).toFixed(2)}`;
+        list.appendChild(item);
+    });
+    container.appendChild(list);
+}
+
+function displayAlertsByZone(rows) {
+    const container = document.getElementById('alerts-by-zone');
+    if (!container) return;
+    container.innerHTML = '';
+    if (!rows || rows.length === 0) {
+        container.innerHTML = '<p>No alerts data</p>';
+        return;
+    }
+
+    const list = document.createElement('ul');
+    rows.forEach(r => {
+        const li = document.createElement('li');
+        li.textContent = `${r.zone} — ${r.alert_count} alerts`;
+        list.appendChild(li);
+    });
+    container.appendChild(list);
+}
+
+function displayAvgCostPerZone(rows) {
+    const container = document.getElementById('avg-cost-per-zone');
+    if (!container) return;
+    container.innerHTML = '';
+    if (!rows || rows.length === 0) {
+        container.innerHTML = '<p>No cost data</p>';
+        return;
+    }
+
+    const table = document.createElement('table');
+    table.className = 'simple-table';
+    table.innerHTML = `<tr><th>Zone</th><th>Avg Cost ($)</th></tr>`;
+    rows.forEach(r => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${r.zone}</td><td>${Number(r.avg_cost).toFixed(2)}</td>`;
+        table.appendChild(tr);
+    });
+    container.appendChild(table);
+}
+
+function displayDevicesNeedingReplacement(rows) {
+    const container = document.getElementById('devices-needing-replacement');
+    if (!container) return;
+    container.innerHTML = '';
+    if (!rows || rows.length === 0) {
+        container.innerHTML = '<p>No devices need replacement</p>';
+        return;
+    }
+
+    const list = document.createElement('ol');
+    rows.forEach(d => {
+        const li = document.createElement('li');
+        li.textContent = `Device ${d.device_id} (${d.type}) — age: ${d.age_years} yrs, avg maintenance: $${Number(d.avg_maintenance_cost).toFixed(2)}`;
+        list.appendChild(li);
+    });
+    container.appendChild(list);
 }
 
 function loadDeviceStatusChart(devices) {

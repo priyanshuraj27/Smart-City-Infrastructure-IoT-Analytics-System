@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Smart City Infrastructure & IoT Analytics Dashboard</title>
     <link rel="stylesheet" href="styles.css">
+    <!-- Modern system font for better UI -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
@@ -33,6 +35,9 @@
                 <div class="header-info">
                     <span id="current-time"></span>
                     <button class="btn-refresh" onclick="refreshData()">Refresh</button>
+                    <div id="auth-area" style="display:inline-block; margin-left:10px">
+                        <button class="btn btn-secondary" id="btn-login" onclick="showLoginForm()">Login</button>
+                    </div>
                 </div>
             </header>
 
@@ -286,6 +291,38 @@
                         <h3>Device Status Overview</h3>
                         <canvas id="statusChart"></canvas>
                     </div>
+                    <div class="card">
+                        <h3>Top Devices by Readings</h3>
+                        <div style="display:flex; justify-content:space-between; align-items:center">
+                            <div id="top-devices" style="flex:1; min-width:220px"></div>
+                            <div style="width:320px; padding-left:12px">
+                                <canvas id="canvas-top-devices"></canvas>
+                            </div>
+                        </div>
+                        <div style="margin-top:8px; text-align:right">
+                            <button class="btn btn-secondary" onclick="exportTopDevicesCSV()">Export CSV</button>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <h3>Alerts by Zone</h3>
+                        <div style="display:flex; gap:12px; align-items:flex-start">
+                            <div id="alerts-by-zone" style="flex:1; min-width:180px"></div>
+                            <div style="width:320px">
+                                <canvas id="canvas-alerts-by-zone"></canvas>
+                            </div>
+                        </div>
+                        <div style="margin-top:8px; text-align:right">
+                            <button class="btn btn-secondary" onclick="exportAlertsByZoneCSV()">Export CSV</button>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <h3>Avg Maintenance Cost per Zone</h3>
+                        <div id="avg-cost-per-zone"></div>
+                    </div>
+                    <div class="card">
+                        <h3>Devices Needing Replacement</h3>
+                        <div id="devices-needing-replacement"></div>
+                    </div>
                 </div>
             </section>
         </main>
@@ -295,6 +332,41 @@
     <script>
         // Auto-load dashboard on page load
         loadDashboard();
+        // Refresh auth UI on load
+        if (typeof updateAuthUI === 'function') updateAuthUI();
     </script>
+
+    <!-- Login Modal -->
+    <div id="login-modal" class="modal" style="display:none">
+        <div class="modal-content">
+            <h3>Login</h3>
+            <form onsubmit="loginUser(event)">
+                <input type="email" id="login-email" placeholder="Email" required>
+                <input type="password" id="login-password" placeholder="Password" required>
+                <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:8px">
+                    <button type="submit" class="btn btn-primary">Login</button>
+                    <button type="button" class="btn btn-secondary" onclick="hideLoginForm()">Cancel</button>
+                </div>
+            </form>
+            <p style="margin-top:12px; font-size:13px">Don't have an account? <a href="#" onclick="hideLoginForm(); showSignupForm(); return false;">Sign up</a></p>
+        </div>
+    </div>
+
+    <!-- Signup Modal -->
+    <div id="signup-modal" class="modal" style="display:none">
+        <div class="modal-content">
+            <h3>Sign Up</h3>
+            <form onsubmit="signupUser(event)">
+                <input type="text" id="signup-name" placeholder="Name" required>
+                <input type="email" id="signup-email" placeholder="Email" required>
+                <input type="password" id="signup-password" placeholder="Password" required>
+                <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:8px">
+                    <button type="submit" class="btn btn-primary">Create Account</button>
+                    <button type="button" class="btn btn-secondary" onclick="hideSignupForm()">Cancel</button>
+                </div>
+            </form>
+            <p style="margin-top:12px; font-size:13px">Already have an account? <a href="#" onclick="hideSignupForm(); showLoginForm(); return false;">Login</a></p>
+        </div>
+    </div>
 </body>
 </html>
