@@ -1,10 +1,4 @@
--- ============================================
--- Smart City Infrastructure & IoT Analytics System
--- Complex SQL Queries
--- ============================================
-
 USE smart_city_db;
-
 -- ============================================
 -- Query 1: Find high-pollution zones (last 30 days)
 -- ============================================

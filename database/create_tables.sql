@@ -1,15 +1,7 @@
--- ============================================
--- Smart City Infrastructure & IoT Analytics System
--- Database Setup
--- ============================================
-
 -- Create Database
 CREATE DATABASE IF NOT EXISTS smart_city_db;
 USE smart_city_db;
 
--- ============================================
--- Table: Zones
--- ============================================
 CREATE TABLE Zones (
     zone_id INT PRIMARY KEY,
     name VARCHAR(50) NOT NULL UNIQUE,
@@ -18,9 +10,6 @@ CREATE TABLE Zones (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- ============================================
--- Table: Devices
--- ============================================
 CREATE TABLE Devices (
     device_id INT PRIMARY KEY,
     type VARCHAR(50) NOT NULL,

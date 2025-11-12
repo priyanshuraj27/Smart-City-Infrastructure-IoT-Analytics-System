@@ -1,13 +1,5 @@
--- ============================================
--- Smart City Infrastructure & IoT Analytics System
--- Sample Data Insertion
--- ============================================
-
 USE smart_city_db;
 
--- ============================================
--- Insert Zones
--- ============================================
 INSERT INTO Zones (zone_id, name, population, avg_income) VALUES
 (1, 'East Zone', 150000, 65000.00),
 (2, 'West Zone', 120000, 72000.00),
